@@ -1,5 +1,3 @@
-using System;
-
 namespace TTV_Calculator
 {
     public enum PriorityGroup
@@ -10,34 +8,110 @@ namespace TTV_Calculator
         Fire,
     }
 
-    public enum ReactionRequirement
+    [Flags]
+    public enum ReactionType
     {
-        GasRequirement,
-        MinimumTemperature,
-        MaximumTemperature,
+        None = 0,
+        NobliumSupression = 1,
+        WaterVaporCondensation = 2,
+        PlasmaCombustion = 4,
+        TritiumCombustion = 8,
+        NitrousFormation = 16,
+        NitrousDecomposition = 32,
+        BzFormation = 64,
+        PluoxiumFormation = 128,
+        NitriumFormation = 256,
+        NitriumDecomposition = 512,
+        NobliumFormation = 1024,
+        Fusion = 2048,
+    }
+
+    public struct ReactionRequirements(float? minTemperature = null, float? maxTemperature = null, (GasType, float)[]? gasRequirements = null)
+    {
+        public float? MinTemperature = minTemperature;
+        public float? MaxTemperature = maxTemperature;
+        public readonly (GasType Gas, float Amount)[]? GasRequirements = gasRequirements;
     }
 
     public abstract class GasReaction
     {
-        public abstract string Name { get; }
+        public abstract ReactionType ReactionType { get; }
         public abstract PriorityGroup PriorityGroup { get; }
-        public abstract Dictionary<ReactionRequirement, object> Requirements { get; }
+        public abstract ReactionRequirements Requirements { get; }
 
         public abstract bool React(GasMixture mixture);
+
+        public static string TypeToString(ReactionType bitfield)
+        {
+            List<string> stringList = new List<string>();
+            if (bitfield.HasFlag(ReactionType.NobliumSupression))
+            {
+                stringList.Add("Hyper-Noblium Supression");
+            }
+            if (bitfield.HasFlag(ReactionType.WaterVaporCondensation))
+            {
+                stringList.Add("Water Vapor Condensation");
+            }
+            if (bitfield.HasFlag(ReactionType.PlasmaCombustion))
+            {
+                stringList.Add("Plasma Combustion");
+            }
+            if (bitfield.HasFlag(ReactionType.TritiumCombustion))
+            {
+                stringList.Add("Tritium Combustion");
+            }
+            if (bitfield.HasFlag(ReactionType.NitrousFormation))
+            {
+                stringList.Add("Nitrous Oxide Formation");
+            }
+            if (bitfield.HasFlag(ReactionType.NitrousDecomposition))
+            {
+                stringList.Add("Nitrous Oxide Decomposition");
+            }
+            if (bitfield.HasFlag(ReactionType.BzFormation))
+            {
+                stringList.Add("Bz Formation");
+            }
+            if (bitfield.HasFlag(ReactionType.PluoxiumFormation))
+            {
+                stringList.Add("Pluoxium Formation");
+            }
+            if (bitfield.HasFlag(ReactionType.NitriumFormation))
+            {
+                stringList.Add("Nitrium Formation");
+            }
+            if (bitfield.HasFlag(ReactionType.NitriumDecomposition))
+            {
+                stringList.Add("Nitrium Decomposition");
+            }
+            if (bitfield.HasFlag(ReactionType.NobliumFormation))
+            {
+                stringList.Add("Hyper-Noblium Formation");
+            }
+            if (bitfield.HasFlag(ReactionType.Fusion))
+            {
+                stringList.Add("Plasmic Fusion");
+            }
+
+            if (stringList.Count == 0)
+            {
+                stringList.Add("None");
+            }
+
+            return string.Join(", ", stringList);
+        }
     }
 
     public sealed class WaterVaporCondensation : GasReaction
     {
-        public override string Name => "Water Vapor Condensation";
+        public override ReactionType ReactionType => ReactionType.WaterVaporCondensation;
         public override PriorityGroup PriorityGroup => PriorityGroup.PostFormation;
-        public override Dictionary<ReactionRequirement, object> Requirements => new()
-        {
-            {ReactionRequirement.GasRequirement, new Dictionary<GasType, float>()
-                {
-                    {GasType.WaterVapor, GasMixture.MOLES_GAS_VISIBLE},
-                }},
-            {ReactionRequirement.MaximumTemperature, WATER_VAPOR_CONDENSATION_POINT},
-        };
+        public override ReactionRequirements Requirements => new ReactionRequirements(
+            maxTemperature: WATER_VAPOR_CONDENSATION_POINT, 
+            gasRequirements: [
+                (GasType.WaterVapor, GasMixture.MINIMUM_MOLE_COUNT),
+            ]
+        );
 
         public const float WATER_VAPOR_CONDENSATION_POINT = GasMixture.T20C + 10f;
 
@@ -50,17 +124,15 @@ namespace TTV_Calculator
 
     public sealed class PlasmaCombustion : GasReaction
     {
-        public override string Name => "Plasma Combustion";
+        public override ReactionType ReactionType => ReactionType.PlasmaCombustion;
         public override PriorityGroup PriorityGroup => PriorityGroup.Fire;
-        public override Dictionary<ReactionRequirement, object> Requirements => new()
-        {
-            {ReactionRequirement.GasRequirement, new Dictionary<GasType, float>()
-                {
-                    {GasType.Plasma, GasMixture.MINIMUM_MOLE_COUNT},
-                    {GasType.Oxygen, GasMixture.MINIMUM_MOLE_COUNT},
-                }},
-            { ReactionRequirement.MinimumTemperature, PLASMA_MINIMUM_BURN_TEMPERATURE},
-        };
+        public override ReactionRequirements Requirements => new ReactionRequirements(
+            minTemperature: PLASMA_MINIMUM_BURN_TEMPERATURE,
+            gasRequirements: [
+                (GasType.Plasma, GasMixture.MINIMUM_MOLE_COUNT),
+                (GasType.Oxygen, GasMixture.MINIMUM_MOLE_COUNT),
+            ]
+        );
 
         private const float PLASMA_MINIMUM_BURN_TEMPERATURE = 373.15f;
         private const float PLASMA_UPPER_TEMPERATURE = PLASMA_MINIMUM_BURN_TEMPERATURE + 1270f;
@@ -113,7 +185,7 @@ namespace TTV_Calculator
             }
 
             float oldHeatCapacity = mixture.HeatCapacity;
-            plasmaBurnRate = Math.Min(Math.Min(plasmaBurnRate, mixture.GetMoleAmount(GasType.Plasma)), mixture.GetMoleAmount(GasType.Oxygen) * (1f / oxygenBurnRatio)); //Ensures matter is conserved properly
+            plasmaBurnRate = float.Min(float.Min(plasmaBurnRate, mixture.GetMoleAmount(GasType.Plasma)), mixture.GetMoleAmount(GasType.Oxygen) * (1f / oxygenBurnRatio)); //Ensures matter is conserved properly
             mixture.SetMoles(GasType.Plasma, /* QUANTIZE( */mixture.GetMoleAmount(GasType.Plasma)/* ) */ - plasmaBurnRate);
             mixture.SetMoles(GasType.Oxygen, /* QUANTIZE( */mixture.GetMoleAmount(GasType.Oxygen)/* ) */ - (plasmaBurnRate * oxygenBurnRatio));
             if (superSaturation)
@@ -139,17 +211,15 @@ namespace TTV_Calculator
 
     public sealed class TritiumCombustion : GasReaction
     {
-        public override string Name => "Tritium Combustion";
+        public override ReactionType ReactionType => ReactionType.TritiumCombustion;
         public override PriorityGroup PriorityGroup => PriorityGroup.Fire;
-        public override Dictionary<ReactionRequirement, object> Requirements => new()
-        {
-            {ReactionRequirement.GasRequirement, new Dictionary<GasType, float>()
-                {
-                    {GasType.Tritium, GasMixture.MINIMUM_MOLE_COUNT},
-                    {GasType.Oxygen, GasMixture.MINIMUM_MOLE_COUNT},
-                }},
-            { ReactionRequirement.MinimumTemperature, TRITIUM_MINIMUM_BURN_TEMPERATURE},
-        };
+        public override ReactionRequirements Requirements => new ReactionRequirements(
+            minTemperature: TRITIUM_MINIMUM_BURN_TEMPERATURE,
+            gasRequirements: [
+                (GasType.Tritium, GasMixture.MINIMUM_MOLE_COUNT),
+                (GasType.Oxygen, GasMixture.MINIMUM_MOLE_COUNT),
+            ]
+        );
 
         private const float TRITIUM_MINIMUM_BURN_TEMPERATURE = 373.15f;
         private const float TRITIUM_BURN_OXY_FACTOR = 100f;
@@ -204,19 +274,17 @@ namespace TTV_Calculator
 
     public sealed class NitrousFormation : GasReaction
     {
-        public override string Name => "Nitrous Oxide Formation";
+        public override ReactionType ReactionType => ReactionType.NitrousFormation;
         public override PriorityGroup PriorityGroup => PriorityGroup.Formation;
-        public override Dictionary<ReactionRequirement, object> Requirements => new()
-        {
-            {ReactionRequirement.GasRequirement, new Dictionary<GasType, float>()
-                {
-                    {GasType.Oxygen, 10f},
-                    {GasType.Nitrogen, 20f},
-                    {GasType.Bz, 5f},
-                }},
-            { ReactionRequirement.MinimumTemperature, N2O_FORMATION_MIN_TEMPERATURE},
-            { ReactionRequirement.MaximumTemperature, N2O_FORMATION_MAX_TEMPERATURE},
-        };
+        public override ReactionRequirements Requirements => new ReactionRequirements(
+            minTemperature: N2O_FORMATION_MIN_TEMPERATURE,
+            maxTemperature: N2O_FORMATION_MAX_TEMPERATURE,
+            gasRequirements: [
+                (GasType.Oxygen, 10f),
+                (GasType.Nitrogen, 20f),
+                (GasType.Bz, 5f),
+            ]
+        );
 
         private const float N2O_FORMATION_MIN_TEMPERATURE = 200f;
         private const float N2O_FORMATION_MAX_TEMPERATURE = 250f;
@@ -224,7 +292,7 @@ namespace TTV_Calculator
 
         public override bool React(GasMixture mixture)
         {
-            float heatEfficiency = Math.Min(mixture.GetMoleAmount(GasType.Oxygen) * 2, mixture.GetMoleAmount(GasType.Nitrogen));
+            float heatEfficiency = float.Min(mixture.GetMoleAmount(GasType.Oxygen) * 2, mixture.GetMoleAmount(GasType.Nitrogen));
             if ((mixture.GetMoleAmount(GasType.Oxygen) - heatEfficiency * 0.5f < 0f) || (mixture.GetMoleAmount(GasType.Nitrogen) - heatEfficiency < 0f))
             {
                 return false;
@@ -239,7 +307,7 @@ namespace TTV_Calculator
             float newHeatCapacity = mixture.HeatCapacity;
             if (newHeatCapacity > GasMixture.MINIMUM_HEAT_CAPACITY)
             {
-                mixture.Temperature = Math.Max((mixture.Temperature * oldHeatCapacity + energyReleased) / newHeatCapacity, GasMixture.TCMB);
+                mixture.Temperature = float.Max((mixture.Temperature * oldHeatCapacity + energyReleased) / newHeatCapacity, GasMixture.TCMB);
             }
 
             return true;
@@ -248,17 +316,15 @@ namespace TTV_Calculator
 
     public sealed class NitrousDecomposition : GasReaction
     {
-        public override string Name => "Nitrous Oxide Decomposition";
+        public override ReactionType ReactionType => ReactionType.NitrousDecomposition;
         public override PriorityGroup PriorityGroup => PriorityGroup.PostFormation;
-        public override Dictionary<ReactionRequirement, object> Requirements => new()
-        {
-            {ReactionRequirement.GasRequirement, new Dictionary<GasType, float>()
-                {
-                    {GasType.NitrousOxide, GasMixture.MINIMUM_MOLE_COUNT * 2f},
-                }},
-            { ReactionRequirement.MinimumTemperature, N2O_DECOMPOSITION_MIN_TEMPERATURE},
-            { ReactionRequirement.MaximumTemperature, N2O_DECOMPOSITION_MAX_TEMPERATURE},
-        };
+        public override ReactionRequirements Requirements => new ReactionRequirements(
+            minTemperature: N2O_DECOMPOSITION_MIN_TEMPERATURE,
+            maxTemperature: N2O_DECOMPOSITION_MAX_TEMPERATURE,
+            gasRequirements: [
+                (GasType.NitrousOxide, GasMixture.MINIMUM_MOLE_COUNT * 2f),
+            ]
+        );
 
         private const float N2O_DECOMPOSITION_MIN_TEMPERATURE = 1400f;
         private const float N2O_DECOMPOSITION_MAX_TEMPERATURE = 100000f;
@@ -286,7 +352,7 @@ namespace TTV_Calculator
             float newHeatCapacity = mixture.HeatCapacity;
             if (newHeatCapacity > GasMixture.MINIMUM_HEAT_CAPACITY)
             {
-                mixture.Temperature = Math.Max((mixture.Temperature * oldHeatCapacity + energyReleased) / newHeatCapacity, GasMixture.TCMB);
+                mixture.Temperature = float.Max((mixture.Temperature * oldHeatCapacity + energyReleased) / newHeatCapacity, GasMixture.TCMB);
             }
 
             return true;
@@ -295,17 +361,15 @@ namespace TTV_Calculator
 
     public sealed class BzFormation : GasReaction
     {
-        public override string Name => "Bz Formation";
+        public override ReactionType ReactionType => ReactionType.BzFormation;
         public override PriorityGroup PriorityGroup => PriorityGroup.Formation;
-        public override Dictionary<ReactionRequirement, object> Requirements => new()
-        {
-            {ReactionRequirement.GasRequirement, new Dictionary<GasType, float>()
-                {
-                    {GasType.NitrousOxide, 10f},
-                    {GasType.Plasma, 10f},
-                }},
-            { ReactionRequirement.MaximumTemperature, BZ_FORMATION_MAX_TEMPERATURE},
-        };
+        public override ReactionRequirements Requirements => new ReactionRequirements(
+            maxTemperature: BZ_FORMATION_MAX_TEMPERATURE,
+            gasRequirements: [
+                (GasType.NitrousOxide, 10f),
+                (GasType.Plasma, 10f),
+            ]
+        );
 
         private const float BZ_FORMATION_MAX_TEMPERATURE = 313.15f;
         private const float BZ_FORMATION_ENERGY = 80000f;
@@ -316,11 +380,11 @@ namespace TTV_Calculator
             float pressure = mixture.Pressure;
             float volume = mixture.Volume;
             float enviromentEfficiency = volume / pressure;
-            float ratioEfficiency = Math.Min(mixture.GetMoleAmount(GasType.NitrousOxide) / mixture.GetMoleAmount(GasType.Plasma), 1f);
-            float nitrousOxideDecomposedFactor = Math.Max(4f * (mixture.GetMoleAmount(GasType.Plasma) / (mixture.GetMoleAmount(GasType.NitrousOxide) + mixture.GetMoleAmount(GasType.Plasma)) - 0.75f), 0f);
-            float bzFormed = Math.Min(
+            float ratioEfficiency = float.Min(mixture.GetMoleAmount(GasType.NitrousOxide) / mixture.GetMoleAmount(GasType.Plasma), 1f);
+            float nitrousOxideDecomposedFactor = float.Max(4f * (mixture.GetMoleAmount(GasType.Plasma) / (mixture.GetMoleAmount(GasType.NitrousOxide) + mixture.GetMoleAmount(GasType.Plasma)) - 0.75f), 0f);
+            float bzFormed = float.Min(
                 0.01f * ratioEfficiency * enviromentEfficiency,
-                Math.Min(
+                float.Min(
                     mixture.GetMoleAmount(GasType.NitrousOxide) * 2.5f,
                     mixture.GetMoleAmount(GasType.Plasma) * (1f / (0.8f * (1f - nitrousOxideDecomposedFactor)))
                 )
@@ -350,7 +414,7 @@ namespace TTV_Calculator
             float newHeatCapacity = mixture.HeatCapacity;
             if (newHeatCapacity > GasMixture.MINIMUM_HEAT_CAPACITY)
             {
-                mixture.Temperature = Math.Max((mixture.Temperature * oldHeatCapacity + energyReleased) / newHeatCapacity, GasMixture.TCMB);
+                mixture.Temperature = float.Max((mixture.Temperature * oldHeatCapacity + energyReleased) / newHeatCapacity, GasMixture.TCMB);
             }
 
             return true;
@@ -359,19 +423,17 @@ namespace TTV_Calculator
 
     public sealed class PluoxiumFormation : GasReaction
     {
-        public override string Name => "Pluoxium Formation";
+        public override ReactionType ReactionType => ReactionType.PluoxiumFormation;
         public override PriorityGroup PriorityGroup => PriorityGroup.Formation;
-        public override Dictionary<ReactionRequirement, object> Requirements => new()
-        {
-            {ReactionRequirement.GasRequirement, new Dictionary<GasType, float>()
-                {
-                    {GasType.CarbonDioxide, GasMixture.MINIMUM_MOLE_COUNT},
-                    {GasType.Oxygen, GasMixture.MINIMUM_MOLE_COUNT},
-                    {GasType.Tritium, GasMixture.MINIMUM_MOLE_COUNT},
-                }},
-            { ReactionRequirement.MinimumTemperature, PLUOXIUM_FORMATION_MIN_TEMP},
-            { ReactionRequirement.MaximumTemperature, PLUOXIUM_FORMATION_MAX_TEMP},
-        };
+        public override ReactionRequirements Requirements => new ReactionRequirements(
+            minTemperature: PLUOXIUM_FORMATION_MIN_TEMP,
+            maxTemperature: PLUOXIUM_FORMATION_MAX_TEMP,
+            gasRequirements: [
+                (GasType.CarbonDioxide, GasMixture.MINIMUM_MOLE_COUNT),
+                (GasType.Oxygen, GasMixture.MINIMUM_MOLE_COUNT),
+                (GasType.Tritium, GasMixture.MINIMUM_MOLE_COUNT),
+            ]
+        );
 
         private const float PLUOXIUM_FORMATION_MIN_TEMP = 50f;
         private const float PLUOXIUM_FORMATION_MAX_TEMP = GasMixture.T0C;
@@ -380,11 +442,11 @@ namespace TTV_Calculator
 
         public override bool React(GasMixture mixture)
         {
-            float producedAmount = Math.Min(
+            float producedAmount = float.Min(
                 PLUOXIUM_FORMATION_MAX_RATE,
-                Math.Min(
+                float.Min(
                     mixture.GetMoleAmount(GasType.CarbonDioxide),
-                    Math.Min(
+                    float.Min(
                         mixture.GetMoleAmount(GasType.Oxygen) * 2f,
                         mixture.GetMoleAmount(GasType.Tritium) * 100f
                     )
@@ -409,7 +471,7 @@ namespace TTV_Calculator
             float newHeatCapacity = mixture.HeatCapacity;
             if (newHeatCapacity > GasMixture.MINIMUM_HEAT_CAPACITY)
             {
-                mixture.Temperature = Math.Max((mixture.Temperature * oldHeatCapacity + energyReleased) / newHeatCapacity, GasMixture.TCMB);
+                mixture.Temperature = float.Max((mixture.Temperature * oldHeatCapacity + energyReleased) / newHeatCapacity, GasMixture.TCMB);
             }
 
             return true;
@@ -418,18 +480,16 @@ namespace TTV_Calculator
 
     public sealed class NitriumFormation : GasReaction
     {
-        public override string Name => "Nitrium Formation";
+        public override ReactionType ReactionType => ReactionType.NitriumFormation;
         public override PriorityGroup PriorityGroup => PriorityGroup.Formation;
-        public override Dictionary<ReactionRequirement, object> Requirements => new()
-        {
-            {ReactionRequirement.GasRequirement, new Dictionary<GasType, float>()
-                {
-                    {GasType.Tritium, 20f},
-                    {GasType.Nitrogen, 10f},
-                    {GasType.Bz, 5f},
-                }},
-            { ReactionRequirement.MinimumTemperature, NITRIUM_FORMATION_MIN_TEMP},
-        };
+        public override ReactionRequirements Requirements => new ReactionRequirements(
+            minTemperature: NITRIUM_FORMATION_MIN_TEMP,
+            gasRequirements: [
+                (GasType.Tritium, 20f),
+                (GasType.Nitrogen, 10f),
+                (GasType.Bz, 5f),
+            ]
+        );
 
         private const float NITRIUM_FORMATION_MIN_TEMP = 1500f;
         private const float NITRIUM_FORMATION_TEMP_DIVISOR = 2985.2f;
@@ -438,11 +498,11 @@ namespace TTV_Calculator
         public override bool React(GasMixture mixture)
         {
             float temperature = mixture.Temperature;
-            float heatEfficiency = Math.Min(
+            float heatEfficiency = float.Min(
                 temperature / NITRIUM_FORMATION_TEMP_DIVISOR,
-                Math.Min(
+                float.Min(
                     mixture.GetMoleAmount(GasType.Tritium),
-                    Math.Min(
+                    float.Min(
                         mixture.GetMoleAmount(GasType.Nitrogen),
                         mixture.GetMoleAmount(GasType.Bz) * 20f
                     )
@@ -468,7 +528,7 @@ namespace TTV_Calculator
             float newHeatCapacity = mixture.HeatCapacity;
             if (newHeatCapacity > GasMixture.MINIMUM_HEAT_CAPACITY)
             {
-                mixture.Temperature = Math.Max((mixture.Temperature * oldHeatCapacity - energyUsed) / newHeatCapacity, GasMixture.TCMB);
+                mixture.Temperature = float.Max((mixture.Temperature * oldHeatCapacity - energyUsed) / newHeatCapacity, GasMixture.TCMB);
             }
 
             return true;
@@ -477,17 +537,15 @@ namespace TTV_Calculator
 
     public sealed class NitriumDecomposition : GasReaction
     {
-        public override string Name => "Nitrium Decomposition";
+        public override ReactionType ReactionType => ReactionType.NitriumDecomposition;
         public override PriorityGroup PriorityGroup => PriorityGroup.Formation;
-        public override Dictionary<ReactionRequirement, object> Requirements => new()
-        {
-            {ReactionRequirement.GasRequirement, new Dictionary<GasType, float>()
-                {
-                    {GasType.Oxygen, GasMixture.MINIMUM_MOLE_COUNT},
-                    {GasType.Nitrium, GasMixture.MINIMUM_MOLE_COUNT},
-                }},
-            { ReactionRequirement.MaximumTemperature, NITRIUM_DECOMPOSITION_MAX_TEMP},
-        };
+        public override ReactionRequirements Requirements => new ReactionRequirements(
+            maxTemperature: NITRIUM_DECOMPOSITION_MAX_TEMP,
+            gasRequirements: [
+                (GasType.Oxygen, GasMixture.MINIMUM_MOLE_COUNT),
+                (GasType.Nitrium, GasMixture.MINIMUM_MOLE_COUNT),
+            ]
+        );
 
         private const float NITRIUM_DECOMPOSITION_MAX_TEMP = GasMixture.T0C + 70f;
         private const float NITRIUM_DECOMPOSITION_TEMP_DIVISOR = 2985.2f;
@@ -496,7 +554,7 @@ namespace TTV_Calculator
         public override bool React(GasMixture mixture)
         {
             float temperature = mixture.Temperature;
-            float heatEfficiency = Math.Min(temperature / NITRIUM_DECOMPOSITION_TEMP_DIVISOR, mixture.GetMoleAmount(GasType.Nitrium));
+            float heatEfficiency = float.Min(temperature / NITRIUM_DECOMPOSITION_TEMP_DIVISOR, mixture.GetMoleAmount(GasType.Nitrium));
 
             if (heatEfficiency <= 0f || (mixture.GetMoleAmount(GasType.Nitrium) - heatEfficiency < 0f))
             {
@@ -512,7 +570,7 @@ namespace TTV_Calculator
             float newHeatCapacity = mixture.HeatCapacity;
             if (newHeatCapacity > GasMixture.MINIMUM_HEAT_CAPACITY)
             {
-                mixture.Temperature = Math.Max((mixture.Temperature * oldHeatCapacity + energyReleased) / newHeatCapacity, GasMixture.TCMB);
+                mixture.Temperature = float.Max((mixture.Temperature * oldHeatCapacity + energyReleased) / newHeatCapacity, GasMixture.TCMB);
             }
 
             return true;
@@ -521,18 +579,16 @@ namespace TTV_Calculator
 
     public sealed class NobliumFormation : GasReaction
     {
-        public override string Name => "Noblium Formation";
+        public override ReactionType ReactionType => ReactionType.NobliumFormation;
         public override PriorityGroup PriorityGroup => PriorityGroup.Formation;
-        public override Dictionary<ReactionRequirement, object> Requirements => new()
-        {
-            {ReactionRequirement.GasRequirement, new Dictionary<GasType, float>()
-                {
-                    {GasType.Nitrogen, GasMixture.MINIMUM_MOLE_COUNT},
-                    {GasType.Tritium, GasMixture.MINIMUM_MOLE_COUNT},
-                }},
-            { ReactionRequirement.MinimumTemperature, NOBLIUM_FORMATION_MIN_TEMP},
-            { ReactionRequirement.MaximumTemperature, NOBLIUM_FORMATION_MAX_TEMP},
-        };
+        public override ReactionRequirements Requirements => new ReactionRequirements(
+            minTemperature: NOBLIUM_FORMATION_MIN_TEMP,
+            maxTemperature: NOBLIUM_FORMATION_MAX_TEMP,
+            gasRequirements: [
+                (GasType.Nitrogen, GasMixture.MINIMUM_MOLE_COUNT),
+                (GasType.Tritium, GasMixture.MINIMUM_MOLE_COUNT),
+            ]
+        );
 
         private const float NOBLIUM_FORMATION_MIN_TEMP = GasMixture.TCMB;
         private const float NOBLIUM_FORMATION_MAX_TEMP = 15f;
@@ -540,10 +596,10 @@ namespace TTV_Calculator
 
         public override bool React(GasMixture mixture)
         {
-            float reductionFactor = (float)Math.Clamp((double)(mixture.GetMoleAmount(GasType.Tritium) / (mixture.GetMoleAmount(GasType.Tritium) + mixture.GetMoleAmount(GasType.Bz))), 0.001, 1.0);
-            float nobFormed = Math.Min(
+            float reductionFactor = float.Clamp(mixture.GetMoleAmount(GasType.Tritium) / (mixture.GetMoleAmount(GasType.Tritium) + mixture.GetMoleAmount(GasType.Bz)), 0.001f, 1f);
+            float nobFormed = float.Min(
                 (mixture.GetMoleAmount(GasType.Nitrogen) + mixture.GetMoleAmount(GasType.Tritium)) * 0.01f,
-                Math.Min(
+                float.Min(
                     mixture.GetMoleAmount(GasType.Tritium) * (1 / (5 * reductionFactor)),
                     mixture.GetMoleAmount(GasType.Nitrogen) * 0.1f
                 )
@@ -559,11 +615,11 @@ namespace TTV_Calculator
             mixture.AddMoles(GasType.Nitrogen, -10 * nobFormed);
             mixture.AddMoles(GasType.HyperNoblium, nobFormed);
 
-            float energyReleased = nobFormed * (NOBLIUM_FORMATION_ENERGY / Math.Max(mixture.GetMoleAmount(GasType.Bz), 1));
+            float energyReleased = nobFormed * (NOBLIUM_FORMATION_ENERGY / float.Max(mixture.GetMoleAmount(GasType.Bz), 1));
             float newHeatCapacity = mixture.HeatCapacity;
             if (newHeatCapacity > GasMixture.MINIMUM_HEAT_CAPACITY)
             {
-                mixture.Temperature = Math.Max((mixture.Temperature * oldHeatCapacity + energyReleased) / newHeatCapacity, GasMixture.TCMB);
+                mixture.Temperature = float.Max((mixture.Temperature * oldHeatCapacity + energyReleased) / newHeatCapacity, GasMixture.TCMB);
             }
 
             return true;
@@ -572,18 +628,16 @@ namespace TTV_Calculator
 
     public sealed class Fusion : GasReaction
     {
-        public override string Name => "Plasmic Fusion";
+        public override ReactionType ReactionType => ReactionType.Fusion;
         public override PriorityGroup PriorityGroup => PriorityGroup.Formation;
-        public override Dictionary<ReactionRequirement, object> Requirements => new()
-        {
-            {ReactionRequirement.GasRequirement, new Dictionary<GasType, float>()
-                {
-                    {GasType.Tritium, FUSION_TRITIUM_MOLES_USED},
-                    {GasType.Plasma, FUSION_MOLE_THRESHOLD},
-                    {GasType.CarbonDioxide, FUSION_MOLE_THRESHOLD},
-                }},
-            { ReactionRequirement.MinimumTemperature, FUSION_TEMPERATURE_THRESHOLD},
-        };
+        public override ReactionRequirements Requirements => new ReactionRequirements(
+            minTemperature: FUSION_TEMPERATURE_THRESHOLD,
+            gasRequirements: [
+                (GasType.Tritium, FUSION_TRITIUM_MOLES_USED),
+                (GasType.Plasma, FUSION_MOLE_THRESHOLD),
+                (GasType.CarbonDioxide, FUSION_MOLE_THRESHOLD),
+            ]
+        );
 
         private const float FUSION_MOLE_THRESHOLD = 250f;
         private const float FUSION_TRITIUM_CONVERSION_COEFFICIENT = 0.002f;
@@ -607,43 +661,39 @@ namespace TTV_Calculator
             float reactionEnergy;
             float initialPlasma = mixture.GetMoleAmount(GasType.Plasma);
             float initialCarbon = mixture.GetMoleAmount(GasType.CarbonDioxide);
-            float scaleFactor = Math.Max(mixture.Volume / FUSION_SCALE_DIVISOR, FUSION_MINIMAL_SCALE);
-            float temperatureScale = (float)Math.Log(10, mixture.Temperature);
+            float scaleFactor = float.Max(mixture.Volume / FUSION_SCALE_DIVISOR, FUSION_MINIMAL_SCALE);
+            float temperatureScale = float.Log10(mixture.Temperature);
             float toroidalSize = TOROID_CALCULATED_THRESHOLD + (temperatureScale <= FUSION_BASE_TEMPSCALE ?
                 (temperatureScale - FUSION_BASE_TEMPSCALE) / FUSION_BUFFER_DIVISOR :
-                (float)Math.Pow(4f, (temperatureScale - FUSION_BASE_TEMPSCALE) / FUSION_SLOPE_DIVISOR));
-            float gasPower = 0f;
-            foreach (GasType gasType in mixture.Contents.Keys)
-            {
-                gasPower += GasLibrary.Gases[gasType].FusionPower;
-            }
+                float.Pow(4f, (temperatureScale - FUSION_BASE_TEMPSCALE) / FUSION_SLOPE_DIVISOR));
+            float gasPower = mixture.FusionPower;
             float instability = gasPower * INSTABILITY_GAS_POWER_FACTOR % toroidalSize;
 
             float plasma = (initialPlasma - FUSION_MOLE_THRESHOLD) / scaleFactor;
             float carbon = (initialCarbon - FUSION_MOLE_THRESHOLD) / scaleFactor;
 
-            plasma = plasma - instability * (float)Math.Sin(carbon * 57.2957795f) % toroidalSize; // 57.2957795f is the conversion byond uses
+            plasma = plasma - instability * float.Sin(carbon * 57.2957795f) % toroidalSize; // 57.2957795f is the conversion byond uses
             carbon = carbon - plasma % toroidalSize;
 
             mixture.SetMoles(GasType.Plasma, plasma * scaleFactor + FUSION_MOLE_THRESHOLD);
             mixture.SetMoles(GasType.CarbonDioxide, carbon * scaleFactor + FUSION_MOLE_THRESHOLD);
 
-            float deltaPlasma = Math.Min(initialPlasma - mixture.GetMoleAmount(GasType.Plasma), toroidalSize * scaleFactor * 1.5f);
+            float deltaPlasma = float.Min(initialPlasma - mixture.GetMoleAmount(GasType.Plasma), toroidalSize * scaleFactor * 1.5f);
 
             reactionEnergy = instability <= FUSION_INSTABILITY_ENDOTHERMALITY || deltaPlasma > 0f ?
-                Math.Max(deltaPlasma * PLASMA_BINDING_ENERGY, 0f) :
-                deltaPlasma * PLASMA_BINDING_ENERGY * (float)Math.Pow(instability - FUSION_INSTABILITY_ENDOTHERMALITY, 0.5f);
+                float.Max(deltaPlasma * PLASMA_BINDING_ENERGY, 0f) :
+                deltaPlasma * PLASMA_BINDING_ENERGY * float.Pow(instability - FUSION_INSTABILITY_ENDOTHERMALITY, 0.5f);
 
             if (reactionEnergy > 0f)
             {
                 float middleEnergy = ((TOROID_CALCULATED_THRESHOLD / 2f * scaleFactor) + FUSION_MOLE_THRESHOLD) * (200f * FUSION_MIDDLE_ENERGY_REFERENCE);
-                thermalEnergy = middleEnergy * (float)Math.Pow(FUSION_ENERGY_TRANSLATION_EXPONENT, Math.Log(10f, thermalEnergy / middleEnergy));
+                thermalEnergy = middleEnergy * float.Pow(FUSION_ENERGY_TRANSLATION_EXPONENT, float.Log10(thermalEnergy / middleEnergy));
 
                 float bowdlerizedReactionEnergy = Math.Clamp(reactionEnergy,
-                    thermalEnergy * ((float)Math.Pow(1f / FUSION_ENERGY_TRANSLATION_EXPONENT, 2f) - 1f),
-                    thermalEnergy * ((float)Math.Pow(FUSION_ENERGY_TRANSLATION_EXPONENT, 2f) - 1f)
+                    thermalEnergy * (float.Pow(1f / FUSION_ENERGY_TRANSLATION_EXPONENT, 2f) - 1f),
+                    thermalEnergy * (float.Pow(FUSION_ENERGY_TRANSLATION_EXPONENT, 2f) - 1f)
                 );
-                thermalEnergy = middleEnergy * (float)Math.Pow(10f, Math.Log(FUSION_ENERGY_TRANSLATION_EXPONENT, (thermalEnergy + bowdlerizedReactionEnergy) / middleEnergy));
+                thermalEnergy = middleEnergy * float.Pow(10f, float.Log(FUSION_ENERGY_TRANSLATION_EXPONENT, (thermalEnergy + bowdlerizedReactionEnergy) / middleEnergy));
             }
 
             mixture.AddMoles(GasType.Tritium, -FUSION_TRITIUM_MOLES_USED);

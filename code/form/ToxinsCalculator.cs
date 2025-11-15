@@ -1,9 +1,7 @@
 using System;
+using System.Diagnostics;
 using System.Collections.Generic;
 using System.ComponentModel;
-using System.Drawing;
-using System.Linq;
-using System.Windows.Forms;
 
 namespace TTV_Calculator
 {
@@ -25,7 +23,7 @@ namespace TTV_Calculator
         }
 
         private void SetupUI()
-        {   
+        {
             // Cold tank pressure checkbox
             cold_tank_percent_instead_of_moles_checkbox.CheckedChanged += (s, e) =>
             {
@@ -51,7 +49,9 @@ namespace TTV_Calculator
             cold_tank_gas_dropdown.Format += (s, e) =>
             {
                 if (e.ListItem is GasType gasType)
-                    e.Value = GasLibrary.Gases[gasType].Name;
+                {
+                    e.Value = GasLibrary.Gases[(int)gasType].Name;
+                }
             };
             cold_tank_add_gas.Click += (s, e) =>
             {
@@ -67,7 +67,9 @@ namespace TTV_Calculator
             hot_tank_gas_dropdown.Format += (s, e) =>
             {
                 if (e.ListItem is GasType gasType)
-                    e.Value = GasLibrary.Gases[gasType].Name;
+                {
+                    e.Value = GasLibrary.Gases[(int)gasType].Name;
+                }
             };
             hot_tank_add_gas.Click += (s, e) =>
             {
@@ -81,6 +83,14 @@ namespace TTV_Calculator
             // Hook resizing fix
             cold_tank_panel.SizeChanged += (s, e) => ResizeGasRows(cold_tank_panel);
             hot_tank_panel.SizeChanged += (s, e) => ResizeGasRows(hot_tank_panel);
+
+            AddGasRow(GasType.Oxygen, cold_tank_panel, availableColdTankGases, coldTankUsePercentagesInsteadOfMoles);
+            AddGasRow(GasType.Tritium, cold_tank_panel, availableColdTankGases, coldTankUsePercentagesInsteadOfMoles);
+            availableColdTankGases.Remove(GasType.Oxygen);
+            availableColdTankGases.Remove(GasType.Tritium);
+
+            AddGasRow(GasType.HyperNoblium, hot_tank_panel, availableHotTankGases, hotTankUsePercentagesInsteadOfMoles);
+            availableHotTankGases.Remove(GasType.HyperNoblium);
         }
 
         private void GetDefaultValues()
@@ -98,12 +108,12 @@ namespace TTV_Calculator
             gasRow.Left = (targetPanel.ClientSize.Width - gasRow.Width) / 2;
             gasRow.Height = 40;
             gasRow.BorderStyle = BorderStyle.FixedSingle;
-            gasRow.BackColor = GasLibrary.Gases[gasType].DisplayColor;
+            gasRow.BackColor = GasLibrary.Gases[(int)gasType].DisplayColor;
             gasRow.Tag = gasType;
 
             // Gas name label
             Label nameLabel = new Label();
-            nameLabel.Text = GasLibrary.Gases[gasType].Name;
+            nameLabel.Text = GasLibrary.Gases[(int)gasType].Name;
             nameLabel.AutoSize = true;
             nameLabel.Location = new Point(0, 0);
             nameLabel.Anchor = AnchorStyles.Top | AnchorStyles.Left;
@@ -225,12 +235,12 @@ namespace TTV_Calculator
             }
         }
 
-        private Dictionary<GasType, float> CollectTankContents(FlowLayoutPanel panel)
+        private float[] CollectTankContents(FlowLayoutPanel panel)
         {
-            Dictionary<GasType, float> contents = new Dictionary<GasType, float>();
-            foreach (GasType gas in Enum.GetValues(typeof(GasType)))
+            float[] contents = new float[GasLibrary.GasCount];
+            foreach (GasType gasType in Enum.GetValues(typeof(GasType)))
             {
-                contents[gas] = 0f;
+                contents[(int)gasType] = 0f;
             }
 
             foreach (Panel gasRow in panel.Controls.OfType<Panel>())
@@ -241,7 +251,7 @@ namespace TTV_Calculator
 
                     if (amountInput != null && amountInput.Value > 0)
                     {
-                        contents[gasType] = (float)amountInput.Value;
+                        contents[(int)gasType] = (float)amountInput.Value;
                     }
                 }
             }
@@ -254,48 +264,49 @@ namespace TTV_Calculator
             float coldTankTemperature = (float)cold_tank_temperature.Value;
             float hotTankTemperature = (float)hot_tank_temperature.Value;
 
-            Dictionary<GasType, float> coldTankContents = CollectTankContents(cold_tank_panel);
-            Dictionary<GasType, float> hotTankContents = CollectTankContents(hot_tank_panel);
+            float[] coldTankContents = CollectTankContents(cold_tank_panel);
+            float[] hotTankContents = CollectTankContents(hot_tank_panel);
 
             if (coldTankUsePercentagesInsteadOfMoles)
             {
                 float maxColdTankMoles = (float)cold_tank_kpa.Value * 70f / (GasMixture.R_IDEAL_GAS_EQUATION * coldTankTemperature);
-                foreach (GasType gasType in coldTankContents.Keys)
+                for (int i = 0; i < GasLibrary.GasCount; i++)
                 {
-                    coldTankContents[gasType] = coldTankContents[gasType] / 100f * maxColdTankMoles;
+                    coldTankContents[i] = coldTankContents[i] / 100f * maxColdTankMoles;
                 }
             }
             if (hotTankUsePercentagesInsteadOfMoles)
             {
                 float maxHotTankMoles = (float)hot_tank_kpa.Value * 70f / (GasMixture.R_IDEAL_GAS_EQUATION * hotTankTemperature);
-                foreach (GasType gasType in hotTankContents.Keys)
+                for (int i = 0; i < GasLibrary.GasCount; i++)
                 {
-                    hotTankContents[gasType] = hotTankContents[gasType] / 100f * maxHotTankMoles;
+                    hotTankContents[i] = hotTankContents[i] / 100f * maxHotTankMoles;
                 }
             }
 
-            GasMixture coldTank = new GasMixture(coldTankTemperature, 70f, coldTankContents);
-            GasMixture hotTank = new GasMixture(hotTankTemperature, 70f, hotTankContents);
-            GasMixture mergedTank = GasMixture.Merge(coldTank, hotTank);
+            GasMixture combinedTank = new GasMixture();
 
-            string[] reactions = new string[4];
+            GasMixtureConstructor coldTank = new(coldTankTemperature, 70f, coldTankContents);
+            GasMixtureConstructor hotTank = new(hotTankTemperature, 70f, hotTankContents);
+            combinedTank.Merge(coldTank, hotTank);
+
+            string[] reactionsThatOccured = new string[4];
             for (int i = 0; i < 4; i++)
             {
-                List<string>? reactionsThatOccured = mergedTank.React();
-                reactions[i] = reactionsThatOccured == null ? "Hyper-Noblium Supression" :
-                    reactionsThatOccured.Count == 0 ? "None" : string.Join(", ", reactionsThatOccured);
+                ReactionType reactionResult = combinedTank.React();
+                reactionsThatOccured[i] = GasReaction.TypeToString(reactionResult);
             }
 
-            float bombRange = Math.Max((mergedTank.Pressure - 4053f) / 607.95f, 0f);
+            float bombRange = Math.Max((combinedTank.Pressure - 4053f) / 607.95f, 0f);
 
             calculation_results.Text = $"Cold Tank:\n" +
                 coldTank +
                 $"\n\nHot Tank:\n" +
-                hotTank + 
+                hotTank +
                 $"\n\nCombined Tank:\n" +
-                mergedTank +
+                combinedTank +
                 $"\n\nReactions:\n" +
-                $"- {string.Join("\n- ", reactions)}\n\n" +
+                $"- {string.Join("\n- ", reactionsThatOccured)}\n\n" +
                 $"Bomb Range:\n" +
                 $"- {bombRange}";
         }

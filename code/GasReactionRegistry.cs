@@ -34,21 +34,18 @@ namespace TTV_Calculator
             foreach (GasReaction reaction in allReactions)
             {
                 GasType? reactionKey = null;
+                ReactionRequirements requirements = reaction.Requirements;
 
-                foreach (var requirement in reaction.Requirements)
+                if (requirements.GasRequirements == null)
                 {
-                    if (requirement.Key != ReactionRequirement.GasRequirement)
-                    {
-                        continue;
-                    }
+                    continue;
+                }
 
-                    Dictionary<GasType, float> requiredGases = (Dictionary<GasType, float>)requirement.Value;
-                    foreach (GasType gasType in requiredGases.Keys)
+                foreach (var (gasType, requiredMoles) in requirements.GasRequirements)
+                {
+                    if (reactionKey == null || GasLibrary.Gases[(int)reactionKey.Value].Rarity > GasLibrary.Gases[(int)gasType].Rarity)
                     {
-                        if (reactionKey == null || GasLibrary.Gases[reactionKey.Value].Rarity > GasLibrary.Gases[gasType].Rarity)
-                        {
-                            reactionKey = gasType;
-                        }
+                        reactionKey = gasType;
                     }
                 }
 
@@ -81,31 +78,5 @@ namespace TTV_Calculator
 
             OrderedReactions = priorityReactions;
         }
-    
-        /* For debugging purposes, print out the entire reaction tree in a readable format */
-        /* 
-        using System.Text;
-        public static string GetOrderedReactionsTree()
-        {
-            var stringBuilder = new StringBuilder();
-
-            foreach (var gasEntry in OrderedReactions)
-            {
-                stringBuilder.AppendLine($"{gasEntry.Key}"); // GasType level
-
-                foreach (var priorityEntry in gasEntry.Value)
-                {
-                    stringBuilder.AppendLine($"  └─ {priorityEntry.Key}"); // PriorityGroup level
-
-                    foreach (var reaction in priorityEntry.Value)
-                    {
-                        stringBuilder.AppendLine($"      └─ {reaction}"); // GasReaction level
-                    }
-                }
-            }
-
-            return stringBuilder.ToString();
-        }
-        */
     }
 }
