@@ -35,7 +35,7 @@
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
-            ClientSize = new Size(804, 561);
+            ClientSize = new Size(484, 461);
             Icon = (Icon)resources.GetObject("$this.Icon");
             Name = "ToxinsCalculator";
             Text = "Toxins Calculator";

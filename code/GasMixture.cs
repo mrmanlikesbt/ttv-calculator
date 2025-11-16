@@ -51,6 +51,7 @@ namespace TTV_Calculator.Code
         public const float MINIMUM_MOLE_COUNT = 0.01f;
         public const float MOLAR_ACCURACY = 1e-4f;
         public const float MOLES_GAS_VISIBLE = 0.25f;
+        public const float DEFAULT_VOLUME = 70f;
 
         /// <summary>
         /// An array of the gases inside of us
@@ -130,7 +131,7 @@ namespace TTV_Calculator.Code
             return string.Join("\n", str);
         }
 
-        public GasMixture(float newTemperature = 293.15f, float newVolume = 70f, float[]? newContents = null)
+        public GasMixture(float newTemperature = 293.15f, float newVolume = DEFAULT_VOLUME, float[]? newContents = null)
         {
             Temperature = newTemperature;
             Volume = newVolume;

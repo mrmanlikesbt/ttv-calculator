@@ -311,7 +311,7 @@ namespace TTV_Calculator.Code.UserControls
                 reactionsThatOccured[i] = GasReaction.TypeToString(reactionResult);
             }
 
-            float bombRange = Math.Max((combinedTank.Pressure - 4053f) / 607.95f, 0f);
+            float bombRange = float.Max((combinedTank.Pressure - 4053f) / 607.95f, 0f);
 
             calculation_results.Text = $"Cold Tank:\n" +
                 coldTank +
