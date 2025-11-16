@@ -1,7 +1,5 @@
-using System;
-using System.Diagnostics;
-using System.Collections.Generic;
 using System.ComponentModel;
+using System.Diagnostics;
 
 namespace TTV_Calculator
 {
@@ -58,7 +56,6 @@ namespace TTV_Calculator
                 if (cold_tank_gas_dropdown.SelectedItem is GasType selectedGasType)
                 {
                     AddGasRow(selectedGasType, cold_tank_panel, availableColdTankGases, coldTankUsePercentagesInsteadOfMoles);
-                    availableColdTankGases.Remove(selectedGasType);
                 }
             };
 
@@ -76,7 +73,6 @@ namespace TTV_Calculator
                 if (hot_tank_gas_dropdown.SelectedItem is GasType selectedGasType)
                 {
                     AddGasRow(selectedGasType, hot_tank_panel, availableHotTankGases, hotTankUsePercentagesInsteadOfMoles);
-                    availableHotTankGases.Remove(selectedGasType);
                 }
             };
 
@@ -86,11 +82,8 @@ namespace TTV_Calculator
 
             AddGasRow(GasType.Oxygen, cold_tank_panel, availableColdTankGases, coldTankUsePercentagesInsteadOfMoles);
             AddGasRow(GasType.Tritium, cold_tank_panel, availableColdTankGases, coldTankUsePercentagesInsteadOfMoles);
-            availableColdTankGases.Remove(GasType.Oxygen);
-            availableColdTankGases.Remove(GasType.Tritium);
 
             AddGasRow(GasType.HyperNoblium, hot_tank_panel, availableHotTankGases, hotTankUsePercentagesInsteadOfMoles);
-            availableHotTankGases.Remove(GasType.HyperNoblium);
         }
 
         private void GetDefaultValues()
@@ -100,159 +93,170 @@ namespace TTV_Calculator
             cold_tank_kpa.Enabled = coldTankUsePercentagesInsteadOfMoles;
             hot_tank_kpa.Enabled = hotTankUsePercentagesInsteadOfMoles;
         }
-
-        private void AddGasRow(GasType gasType, FlowLayoutPanel targetPanel, BindingList<GasType> availableGases, bool usePercentagesInsteadOfMoles)
+        private sealed class GasRowTag
         {
+            public readonly GasType GasType;
+            public readonly NumericUpDown AmountInput;
+            public readonly Label UnitLabel;
+            public readonly Button RemoveButton;
+
+            public GasRowTag(GasType gasType, NumericUpDown amountInput, Label unitLabel, Button removeButton)
+            {
+                GasType = gasType;
+                AmountInput = amountInput;
+                UnitLabel = unitLabel;
+                RemoveButton = removeButton;
+            }
+        }
+
+        private static void AddGasRow(
+            GasType gasType,
+            FlowLayoutPanel targetPanel,
+            BindingList<GasType> availableGases,
+            bool usePercentagesInsteadOfMoles)
+        {
+            availableGases.Remove(gasType);
+
             Panel gasRow = new Panel();
             gasRow.Width = targetPanel.ClientSize.Width - 7;
             gasRow.Left = (targetPanel.ClientSize.Width - gasRow.Width) / 2;
             gasRow.Height = 40;
             gasRow.BorderStyle = BorderStyle.FixedSingle;
             gasRow.BackColor = GasLibrary.Gases[(int)gasType].DisplayColor;
-            gasRow.Tag = gasType;
 
-            // Gas name label
-            Label nameLabel = new Label();
-            nameLabel.Text = GasLibrary.Gases[(int)gasType].Name;
-            nameLabel.AutoSize = true;
-            nameLabel.Location = new Point(0, 0);
-            nameLabel.Anchor = AnchorStyles.Top | AnchorStyles.Left;
-            nameLabel.BackColor = Color.Transparent;
+            // Gas row controls
+            Label nameLabel = new Label()
+            {
+                Text = GasLibrary.Gases[(int)gasType].Name,
+                AutoSize = true,
+                Location = new Point(0, 0),
+                Anchor = AnchorStyles.Top | AnchorStyles.Left,
+                BackColor = Color.Transparent
+            };
 
-            // NumericUpDown for amount
-            NumericUpDown amountInput = new NumericUpDown();
-            amountInput.Minimum = 0;
-            amountInput.Maximum = 100000;
-            amountInput.Width = 60;
-            amountInput.Anchor = AnchorStyles.Bottom | AnchorStyles.Left;
-            amountInput.Location = new Point(0, gasRow.Height - amountInput.Height);
-            amountInput.UpDownAlign = LeftRightAlignment.Left;
-            amountInput.DecimalPlaces = 2;
+            NumericUpDown amountInput = new NumericUpDown()
+            {
+                Minimum = 0,
+                Maximum = 100000,
+                Width = 60,
+                Anchor = AnchorStyles.Bottom | AnchorStyles.Left,
+                Location = new Point(0, gasRow.Height - 20),
+                UpDownAlign = LeftRightAlignment.Left,
+                DecimalPlaces = 2
+            };
 
-            // Label for unit (% or mols)
-            Label unitLabel = new Label();
-            unitLabel.Text = usePercentagesInsteadOfMoles ? "%" : "mols";
-            unitLabel.AutoSize = true;
-            unitLabel.Location = new Point(amountInput.Right, amountInput.Top);
-            unitLabel.Anchor = AnchorStyles.Bottom | AnchorStyles.Left;
+            Label unitLabel = new Label()
+            {
+                Text = usePercentagesInsteadOfMoles ? "%" : "mols",
+                AutoSize = true,
+                Location = new Point(amountInput.Right, amountInput.Top),
+                Anchor = AnchorStyles.Bottom | AnchorStyles.Left
+            };
 
-            // Remove button
-            Button removeButton = new Button();
-            removeButton.Text = "Remove";
-            removeButton.Anchor = AnchorStyles.Bottom | AnchorStyles.Right;
-            removeButton.Location = new Point(gasRow.Width - removeButton.Width, gasRow.Height - removeButton.Height);
+            Button removeButton = new Button()
+            {
+                Text = "Remove",
+                Anchor = AnchorStyles.Bottom | AnchorStyles.Right,
+                Location = new Point(gasRow.Width - 75, gasRow.Height - 23)
+            };
+
+            // Assign tag so we never need to search for anything again
+            gasRow.Tag = new GasRowTag(gasType, amountInput, unitLabel, removeButton);
+
             removeButton.Click += (s, e) =>
             {
                 targetPanel.Controls.Remove(gasRow);
                 availableGases.Add(gasType);
+                gasRow.Dispose();
             };
 
-            // Add controls to row
+            // Add controls
             gasRow.Controls.Add(nameLabel);
             gasRow.Controls.Add(amountInput);
             gasRow.Controls.Add(unitLabel);
             gasRow.Controls.Add(removeButton);
 
-            // Add row to list
+            // Add to panel
             targetPanel.Controls.Add(gasRow);
         }
 
-        private void ResizeGasRows(FlowLayoutPanel panel)
+        private static void ResizeGasRows(FlowLayoutPanel panel)
         {
-            foreach (Control control in panel.Controls)
+            foreach (Panel gasRow in panel.Controls.OfType<Panel>())
             {
-                if (control is Panel gasRow)
+                gasRow.Width = panel.ClientSize.Width - 7;
+                if (gasRow.Tag == null)
                 {
-                    gasRow.Width = panel.ClientSize.Width - 7;
-
-                    // Ensure the remove button sticks to the right after resize
-                    foreach (Control inner in gasRow.Controls)
-                    {
-                        if (inner is Button removeButton)
-                        {
-                            removeButton.Location = new Point(gasRow.Width - removeButton.Width, gasRow.Height - removeButton.Height);
-                        }
-                    }
+                    continue;
                 }
+                GasRowTag tag = (GasRowTag)gasRow.Tag;
+                tag.RemoveButton.Location = new Point(
+                    gasRow.Width - tag.RemoveButton.Width,
+                    gasRow.Height - tag.RemoveButton.Height);
             }
         }
 
-        private void ConvertNumericValues(FlowLayoutPanel panel, float temperature, float targetPressure, bool usePercentagesInsteadOfMoles)
+        private static void ConvertNumericValues(FlowLayoutPanel panel, float temperature, float targetPressure, bool usePercentagesInsteadOfMoles)
         {
-            // Calculate the max moles if we’re in percentage mode
-            float maxMoles = (float)targetPressure * 70f / (GasMixture.R_IDEAL_GAS_EQUATION * temperature);
+            float maxMoles = targetPressure * 70f / (GasMixture.R_IDEAL_GAS_EQUATION * temperature);
 
-            // Walk through each row
             foreach (Panel gasRow in panel.Controls.OfType<Panel>())
             {
-                NumericUpDown? amountInput = gasRow.Controls.OfType<NumericUpDown>().FirstOrDefault();
-                if (amountInput == null)
+                if (gasRow.Tag == null)
                 {
                     continue;
                 }
 
+                GasRowTag tag = (GasRowTag)gasRow.Tag;
+                NumericUpDown amountInput = tag.AmountInput;
+
                 if (usePercentagesInsteadOfMoles)
                 {
-                    // mols -> %
-                    if (maxMoles > 0)
-                    {
-                        amountInput.Value = (decimal)((float)amountInput.Value / maxMoles * 100f);
-                    }
-                    else
-                    {
-                        amountInput.Value = 0;
-                    }
-
-                    amountInput.Maximum = 100; // percentages capped
+                    amountInput.Maximum = 100;
+                    amountInput.Value = maxMoles > 0
+                        ? (decimal)((float)amountInput.Value / maxMoles * 100f)
+                        : 0m;
                 }
                 else
                 {
-                    // % -> mols
-                    amountInput.Maximum = 10000; // back to mol limits
-                    if (maxMoles > 0)
-                    {
-                        amountInput.Value = (decimal)((float)amountInput.Value / 100f * maxMoles);
-                    }
-                    else
-                    {
-                        amountInput.Value = 0;
-                    }
+                    amountInput.Maximum = 10000;
+                    amountInput.Value = maxMoles > 0
+                        ? (decimal)((float)amountInput.Value / 100f * maxMoles)
+                        : 0m;
                 }
             }
         }
 
-        private void UpdateUnitLabels(FlowLayoutPanel panel, bool usePercentagesInsteadOfMoles)
+        private static void UpdateUnitLabels(FlowLayoutPanel panel, bool usePercentagesInsteadOfMoles)
         {
             foreach (Panel gasRow in panel.Controls.OfType<Panel>())
             {
-                var unitLabel = gasRow.Controls.OfType<Label>()
-                    .FirstOrDefault(l => l.Text == "%" || l.Text == "mols");
-
-                if (unitLabel != null)
+                if (gasRow.Tag == null)
                 {
-                    unitLabel.Text = usePercentagesInsteadOfMoles ? "%" : "mols";
+                    continue;
                 }
+
+                GasRowTag tag = (GasRowTag)gasRow.Tag;
+                tag.UnitLabel.Text = usePercentagesInsteadOfMoles ? "%" : "mols";
             }
         }
 
-        private float[] CollectTankContents(FlowLayoutPanel panel)
+        private static float[] CollectTankContents(FlowLayoutPanel panel)
         {
             float[] contents = new float[GasLibrary.GasCount];
-            foreach (GasType gasType in Enum.GetValues(typeof(GasType)))
-            {
-                contents[(int)gasType] = 0f;
-            }
 
-            foreach (Panel gasRow in panel.Controls.OfType<Panel>())
+            foreach (Panel row in panel.Controls.OfType<Panel>())
             {
-                if (gasRow.Tag is GasType gasType)
+                if (row.Tag == null)
                 {
-                    var amountInput = gasRow.Controls.OfType<NumericUpDown>().FirstOrDefault();
+                    continue;
+                }
 
-                    if (amountInput != null && amountInput.Value > 0)
-                    {
-                        contents[(int)gasType] = (float)amountInput.Value;
-                    }
+                GasRowTag tag = (GasRowTag)row.Tag;
+                float value = (float)tag.AmountInput.Value;
+                if (value > 0)
+                {
+                    contents[(int)tag.GasType] = value;
                 }
             }
 
@@ -288,9 +292,21 @@ namespace TTV_Calculator
 
             GasMixtureConstructor coldTank = new(coldTankTemperature, 70f, coldTankContents);
             GasMixtureConstructor hotTank = new(hotTankTemperature, 70f, hotTankContents);
-            combinedTank.Merge(coldTank, hotTank);
+
+            Stopwatch stopwatch = Stopwatch.StartNew();
+            const int iterations = 100000;
+            for (int i = 0; i < iterations; i++)
+            {
+                combinedTank.Merge(coldTank, hotTank);
+                for (int r = 0; r < 4; r++)
+                {
+                    combinedTank.React();
+                }
+            }
+            stopwatch.Stop();
 
             string[] reactionsThatOccured = new string[4];
+            combinedTank.Merge(coldTank, hotTank);
             for (int i = 0; i < 4; i++)
             {
                 ReactionType reactionResult = combinedTank.React();
@@ -308,7 +324,9 @@ namespace TTV_Calculator
                 $"\n\nReactions:\n" +
                 $"- {string.Join("\n- ", reactionsThatOccured)}\n\n" +
                 $"Bomb Range:\n" +
-                $"- {bombRange}";
+                $"- {bombRange}" +
+                $"\n\nAvg ticks ({iterations})\n" +
+                $"{stopwatch.ElapsedTicks / iterations}";
         }
     }
 }

@@ -1,4 +1,5 @@
 using System.Runtime.CompilerServices;
+using System.Threading;
 
 namespace TTV_Calculator
 {
@@ -61,7 +62,9 @@ namespace TTV_Calculator
         /// <summary>
         /// A buffer of reactions to avoid unnecessary list allocations 
         /// </summary>
-        private static readonly List<GasReaction> _reactionBuffer = new();
+        private static List<GasReaction> ReactionBuffer => _reactionBufferLocal.Value;
+
+        private static readonly ThreadLocal<List<GasReaction>> _reactionBufferLocal = new(() => new List<GasReaction>(64));
 
         /// <summary>
         /// The volume of our mixture, used for pressure calculation
@@ -249,14 +252,25 @@ namespace TTV_Calculator
             _cachedTotalMoles = totalMoles;
         }
 
-        private static void AddListToBuffer(List<GasReaction> src)
+        private static void AddListToReactionBuffer(List<GasReaction> src)
         {
             if (src == null || src.Count == 0)
             {
                 return;
             }
-            _reactionBuffer.Capacity = Math.Max(_reactionBuffer.Capacity, _reactionBuffer.Count + src.Count);
-            _reactionBuffer.AddRange(src);
+
+            // ensure capacity once per add
+            var buffer = ReactionBuffer;
+            if (buffer.Capacity < buffer.Count + src.Count)
+            {
+                buffer.Capacity = buffer.Count + src.Count;
+            }
+
+            // Faster than AddRange
+            for (int i = 0; i < src.Count; i++)
+            {
+                buffer.Add(src[i]);
+            }
         }
 
         /// <summary>
@@ -265,13 +279,13 @@ namespace TTV_Calculator
         /// <returns>A bitfield of the reactions that occured</returns>
         public ReactionType React()
         {
-            ReactionType reactionsOccurred = ReactionType.None;
             if (GetMoleAmount(GasType.HyperNoblium) >= 5f && Temperature > 20f)
             {
-                return reactionsOccurred;
+                return ReactionType.NobliumSupression;
             }
 
-            _reactionBuffer.Clear();
+            List<GasReaction> buffer = ReactionBuffer;
+            buffer.Clear();
 
             for (int i = 0; i < GasLibrary.GasCount; i++)
             {
@@ -288,14 +302,15 @@ namespace TTV_Calculator
                     continue;
                 }
 
-                AddListToBuffer(reactionSet[PriorityGroup.PreFormation]);
-                AddListToBuffer(reactionSet[PriorityGroup.Formation]);
-                AddListToBuffer(reactionSet[PriorityGroup.PostFormation]);
-                AddListToBuffer(reactionSet[PriorityGroup.Fire]);
+                AddListToReactionBuffer(reactionSet[PriorityGroup.PreFormation]);
+                AddListToReactionBuffer(reactionSet[PriorityGroup.Formation]);
+                AddListToReactionBuffer(reactionSet[PriorityGroup.PostFormation]);
+                AddListToReactionBuffer(reactionSet[PriorityGroup.Fire]);
             }
 
             float temp = Temperature;
-            foreach (GasReaction reaction in _reactionBuffer)
+            ReactionType reactionsOccurred = ReactionType.None;
+            foreach (GasReaction reaction in buffer)
             {
                 ReactionRequirements requirements = reaction.Requirements;
 
