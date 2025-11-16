@@ -1,6 +1,6 @@
 using System.Reflection;
 
-namespace TTV_Calculator
+namespace TTV_Calculator.Code
 {
     public static class GasReactionRegistry
     {

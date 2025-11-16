@@ -1,7 +1,6 @@
 using System.Runtime.CompilerServices;
-using System.Threading;
 
-namespace TTV_Calculator
+namespace TTV_Calculator.Code
 {
     public struct GasMixtureConstructor(float temperature, float volume, float[] contents)
     {

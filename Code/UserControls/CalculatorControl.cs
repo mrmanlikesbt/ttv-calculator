@@ -1,19 +1,17 @@
-using System.ComponentModel;
+﻿using System.ComponentModel;
+using System.Data;
 using System.Diagnostics;
 
-namespace TTV_Calculator
+namespace TTV_Calculator.Code.UserControls
 {
-    public partial class ToxinsCalculator : Form
+    public partial class CalculatorControl : UserControl
     {
-        /// <summary>
-        /// exclusively for the cold tank gas dropdown to avoid adding the same gas twice
-        /// </summary>
         private readonly BindingList<GasType> availableColdTankGases = new(Enum.GetValues(typeof(GasType)).Cast<GasType>().ToList());
         private readonly BindingList<GasType> availableHotTankGases = new(Enum.GetValues(typeof(GasType)).Cast<GasType>().ToList());
 
         private bool coldTankUsePercentagesInsteadOfMoles = false;
         private bool hotTankUsePercentagesInsteadOfMoles = false;
-        public ToxinsCalculator()
+        public CalculatorControl()
         {
             InitializeComponent();
             SetupUI();

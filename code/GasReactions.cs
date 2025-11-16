@@ -1,4 +1,4 @@
-namespace TTV_Calculator
+namespace TTV_Calculator.Code
 {
     public enum PriorityGroup
     {
