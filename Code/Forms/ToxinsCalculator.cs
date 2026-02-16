@@ -22,6 +22,7 @@ namespace TTV_Calculator
             };
 
             AddTabPage("Calculator", new CalculatorControl());
+            AddTabPage("Brute Force", new BruteForceControl());
 
             Controls.Add(mainTabControl);
             mainTabControl.BringToFront();

@@ -1,6 +1,6 @@
 ﻿namespace TTV_Calculator.Code.UserControls
 {
-    partial class CalculatorControl
+    partial class CalculatorControl : UserControl
     {
         /// <summary> 
         /// Required designer variable.
@@ -51,6 +51,12 @@
             cold_tank_panel = new FlowLayoutPanel();
             calculation_results = new RichTextBox();
             calculation_results_label = new Label();
+            logging_label = new Label();
+            log_cold_tank = new CheckBox();
+            log_bomb_range = new CheckBox();
+            log_hot_tank = new CheckBox();
+            log_combined_tank = new CheckBox();
+            log_reactions = new CheckBox();
             ((System.ComponentModel.ISupportInitialize)hot_tank_kpa).BeginInit();
             ((System.ComponentModel.ISupportInitialize)cold_tank_kpa).BeginInit();
             ((System.ComponentModel.ISupportInitialize)hot_tank_temperature).BeginInit();
@@ -90,6 +96,8 @@
             // hot_tank_percent_instead_of_moles_checkbox
             // 
             hot_tank_percent_instead_of_moles_checkbox.AutoSize = true;
+            hot_tank_percent_instead_of_moles_checkbox.Checked = true;
+            hot_tank_percent_instead_of_moles_checkbox.CheckState = CheckState.Checked;
             hot_tank_percent_instead_of_moles_checkbox.Location = new Point(194, 128);
             hot_tank_percent_instead_of_moles_checkbox.Name = "hot_tank_percent_instead_of_moles_checkbox";
             hot_tank_percent_instead_of_moles_checkbox.Size = new Size(180, 19);
@@ -130,6 +138,8 @@
             // cold_tank_percent_instead_of_moles_checkbox
             // 
             cold_tank_percent_instead_of_moles_checkbox.AutoSize = true;
+            cold_tank_percent_instead_of_moles_checkbox.Checked = true;
+            cold_tank_percent_instead_of_moles_checkbox.CheckState = CheckState.Checked;
             cold_tank_percent_instead_of_moles_checkbox.Location = new Point(194, 30);
             cold_tank_percent_instead_of_moles_checkbox.Name = "cold_tank_percent_instead_of_moles_checkbox";
             cold_tank_percent_instead_of_moles_checkbox.Size = new Size(180, 19);
@@ -156,7 +166,7 @@
             hot_tank_temperature.Name = "hot_tank_temperature";
             hot_tank_temperature.Size = new Size(120, 23);
             hot_tank_temperature.TabIndex = 36;
-            hot_tank_temperature.Value = new decimal(new int[] { 27, 0, 0, 65536 });
+            hot_tank_temperature.Value = new decimal(new int[] { 1000000, 0, 0, 0 });
             // 
             // cold_tank_temperature_label
             // 
@@ -177,7 +187,7 @@
             cold_tank_temperature.Name = "cold_tank_temperature";
             cold_tank_temperature.Size = new Size(120, 23);
             cold_tank_temperature.TabIndex = 34;
-            cold_tank_temperature.Value = new decimal(new int[] { 27, 0, 0, 65536 });
+            cold_tank_temperature.Value = new decimal(new int[] { 3, 0, 0, 0 });
             // 
             // hot_tank_label
             // 
@@ -284,10 +294,81 @@
             calculation_results_label.TabIndex = 23;
             calculation_results_label.Text = "Calculation Results";
             // 
+            // logging_label
+            // 
+            logging_label.AutoSize = true;
+            logging_label.Location = new Point(194, 203);
+            logging_label.Name = "logging_label";
+            logging_label.Size = new Size(51, 15);
+            logging_label.TabIndex = 46;
+            logging_label.Text = "Logging";
+            // 
+            // log_cold_tank
+            // 
+            log_cold_tank.AutoSize = true;
+            log_cold_tank.Location = new Point(194, 246);
+            log_cold_tank.Name = "log_cold_tank";
+            log_cold_tank.Size = new Size(79, 19);
+            log_cold_tank.TabIndex = 47;
+            log_cold_tank.Text = "Cold Tank";
+            log_cold_tank.UseVisualStyleBackColor = true;
+            // 
+            // log_bomb_range
+            // 
+            log_bomb_range.AutoSize = true;
+            log_bomb_range.Checked = true;
+            log_bomb_range.CheckState = CheckState.Checked;
+            log_bomb_range.Location = new Point(194, 221);
+            log_bomb_range.Name = "log_bomb_range";
+            log_bomb_range.Size = new Size(94, 19);
+            log_bomb_range.TabIndex = 48;
+            log_bomb_range.Text = "Bomb Range";
+            log_bomb_range.UseVisualStyleBackColor = true;
+            // 
+            // log_hot_tank
+            // 
+            log_hot_tank.AutoSize = true;
+            log_hot_tank.Location = new Point(194, 271);
+            log_hot_tank.Name = "log_hot_tank";
+            log_hot_tank.Size = new Size(74, 19);
+            log_hot_tank.TabIndex = 49;
+            log_hot_tank.Text = "Hot Tank";
+            log_hot_tank.UseVisualStyleBackColor = true;
+            // 
+            // log_combined_tank
+            // 
+            log_combined_tank.AutoSize = true;
+            log_combined_tank.Checked = true;
+            log_combined_tank.CheckState = CheckState.Checked;
+            log_combined_tank.Location = new Point(194, 296);
+            log_combined_tank.Name = "log_combined_tank";
+            log_combined_tank.Size = new Size(110, 19);
+            log_combined_tank.TabIndex = 50;
+            log_combined_tank.Text = "Combined Tank";
+            log_combined_tank.UseVisualStyleBackColor = true;
+            // 
+            // log_reactions
+            // 
+            log_reactions.AutoSize = true;
+            log_reactions.Checked = true;
+            log_reactions.CheckState = CheckState.Checked;
+            log_reactions.Location = new Point(194, 321);
+            log_reactions.Name = "log_reactions";
+            log_reactions.Size = new Size(77, 19);
+            log_reactions.TabIndex = 51;
+            log_reactions.Text = "Reactions";
+            log_reactions.UseVisualStyleBackColor = true;
+            // 
             // CalculatorControl
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
+            Controls.Add(log_reactions);
+            Controls.Add(log_combined_tank);
+            Controls.Add(log_hot_tank);
+            Controls.Add(log_bomb_range);
+            Controls.Add(log_cold_tank);
+            Controls.Add(logging_label);
             Controls.Add(hot_tank_options_label);
             Controls.Add(hot_tank_kpa_label);
             Controls.Add(hot_tank_kpa);
@@ -346,5 +427,11 @@
         private FlowLayoutPanel cold_tank_panel;
         private RichTextBox calculation_results;
         private Label calculation_results_label;
+        private Label logging_label;
+        private CheckBox log_cold_tank;
+        private CheckBox log_bomb_range;
+        private CheckBox log_hot_tank;
+        private CheckBox log_combined_tank;
+        private CheckBox log_reactions;
     }
 }
