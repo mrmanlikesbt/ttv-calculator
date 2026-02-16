@@ -1,4 +1,3 @@
-using Microsoft.VisualBasic;
 using System.Runtime.CompilerServices;
 
 namespace TTV_Calculator.Code
