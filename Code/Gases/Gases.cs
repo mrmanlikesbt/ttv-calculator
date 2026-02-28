@@ -1,148 +1,55 @@
 namespace TTV_Calculator.Code
 {
-	public enum GasType
-	{
-		Oxygen,
-		Nitrogen,
-		CarbonDioxide,
-		Plasma,
-		WaterVapor,
-		HyperNoblium,
-		NitrousOxide,
-		Nitrium,
-		Tritium,
-		Bz,
-		Pluoxium,
-	}
-	public abstract class Gas
-	{
-		public abstract string Name { get; }
-		public abstract float HeatCapacity { get; }
-		public abstract float FusionPower { get; }
-		public abstract float Rarity { get; }
-		public abstract Color DisplayColor { get; }
+    public enum GasType
+    {
+        Oxygen,
+        Nitrogen,
+        CarbonDioxide,
+        Plasma,
+        WaterVapor,
+        HyperNoblium,
+        NitrousOxide,
+        Nitrium,
+        Tritium,
+        Bz,
+        Pluoxium,
+    }
 
-		public override string ToString() => Name;
-	}
+    public readonly struct Gas(string name, float heatCapacity, float fusionPower, float rarity, Color displayColor)
+    {
+        public readonly string Name = name;
+        public readonly float HeatCapacity = heatCapacity;
+        public readonly float FusionPower = fusionPower;
+        public readonly float Rarity = rarity;
+        public readonly Color DisplayColor = displayColor;
 
-	public sealed class Oxygen : Gas
-	{
-		public static Oxygen Instance { get; } = new Oxygen();
+        public override string ToString() => Name;
+    }
 
-		public override string Name => "Oxygen";
-		public override float FusionPower => 0f;
-		public override float HeatCapacity => 20f;
-		public override float Rarity => 900f;
-		public override Color DisplayColor => Color.SkyBlue;
-	}
+    public static class GasLibrary
+    {
+        public static readonly int GasCount = Enum.GetValues(typeof(GasType)).Length;
 
-	public sealed class Nitrogen : Gas
-	{
-		public static Nitrogen Instance { get; } = new Nitrogen();
+        // Indexed by GasType: Gases[(int)GasType.Oxygen] => Oxygen gas
+        public static readonly Gas[] Gases = BuildArray();
 
-		public override string Name => "Nitrogen";
-		public override float FusionPower => 0f;
-		public override float HeatCapacity => 20f;
-		public override float Rarity => 1000f;
-		public override Color DisplayColor => Color.OrangeRed;
-	}
+        private static Gas[] BuildArray()
+        {
+            Gas[] array = new Gas[GasCount];
 
-	public sealed class CarbonDioxide : Gas
-	{
-		public static CarbonDioxide Instance { get; } = new CarbonDioxide();
+            array[(int)GasType.Oxygen] = new Gas("Oxygen", 20f, 0f, 900f, Color.SkyBlue);
+            array[(int)GasType.Nitrogen] = new Gas("Nitrogen", 20f, 0f, 1000f, Color.OrangeRed);
+            array[(int)GasType.CarbonDioxide] = new Gas("Carbon Dioxide", 30f, 0f, 700f, Color.Gray);
+            array[(int)GasType.Plasma] = new Gas("Plasma", 200f, 0f, 800f, Color.Purple);
+            array[(int)GasType.WaterVapor] = new Gas("Water Vapor", 40f, 8f, 500f, Color.LightGray);
+            array[(int)GasType.HyperNoblium] = new Gas("Hyper-Noblium", 2000f, 10f, 50f, Color.Teal);
+            array[(int)GasType.NitrousOxide] = new Gas("Nitrous Oxide", 40f, 10f, 600f, Color.White);
+            array[(int)GasType.Nitrium] = new Gas("Nitrium", 10f, 7f, 1f, Color.Orange);
+            array[(int)GasType.Tritium] = new Gas("Tritium", 10f, 5f, 300f, Color.LightGreen);
+            array[(int)GasType.Bz] = new Gas("Bz", 20f, 8f, 400f, Color.Pink);
+            array[(int)GasType.Pluoxium] = new Gas("Pluoxium", 80f, -10f, 200f, Color.AliceBlue);
 
-		public override string Name => "Carbon Dioxide";
-		public override float FusionPower => 0f;
-		public override float HeatCapacity => 30f;
-		public override float Rarity => 700f;
-		public override Color DisplayColor => Color.Gray;
-	}
-
-	public sealed class Plasma : Gas
-	{
-		public static Plasma Instance { get; } = new Plasma();
-
-		public override string Name => "Plasma";
-		public override float FusionPower => 0f;
-		public override float HeatCapacity => 200f;
-		public override float Rarity => 800f;
-		public override Color DisplayColor => Color.Purple;
-	}
-
-	public sealed class WaterVapor : Gas
-	{
-		public static WaterVapor Instance { get; } = new WaterVapor();
-
-		public override string Name => "Water Vapor";
-		public override float FusionPower => 8f;
-		public override float HeatCapacity => 40f;
-		public override float Rarity => 500f;
-		public override Color DisplayColor => Color.LightGray;
-	}
-
-	public sealed class HyperNoblium : Gas
-	{
-		public static HyperNoblium Instance { get; } = new HyperNoblium();
-
-		public override string Name => "Hyper-Noblium";
-		public override float FusionPower => 10f;
-		public override float HeatCapacity => 2000f;
-		public override float Rarity => 50f;
-		public override Color DisplayColor => Color.Teal;
-	}
-
-	public sealed class NitrousOxide : Gas
-	{
-		public static NitrousOxide Instance { get; } = new NitrousOxide();
-
-		public override string Name => "Nitrous Oxide";
-		public override float FusionPower => 10f;
-		public override float HeatCapacity => 40f;
-		public override float Rarity => 600f;
-		public override Color DisplayColor => Color.White;
-	}
-
-	public sealed class Nitrium : Gas
-	{
-		public static Nitrium Instance { get; } = new Nitrium();
-
-		public override string Name => "Nitrium";
-		public override float FusionPower => 7f;
-		public override float HeatCapacity => 10f;
-		public override float Rarity => 1f;
-		public override Color DisplayColor => Color.Orange;
-	}
-
-	public sealed class Tritium : Gas
-	{
-		public static Tritium Instance { get; } = new Tritium();
-
-		public override string Name => "Tritium";
-		public override float FusionPower => 5f;
-		public override float HeatCapacity => 10f;
-		public override float Rarity => 300f;
-		public override Color DisplayColor => Color.LightGreen;
-	}
-
-	public sealed class Bz : Gas
-	{
-		public static Bz Instance { get; } = new Bz();
-
-		public override string Name => "Bz";
-		public override float FusionPower => 8f;
-		public override float HeatCapacity => 20f;
-		public override float Rarity => 400f;
-		public override Color DisplayColor => Color.Pink;
-	}
-
-	public sealed class Pluoxium : Gas
-	{
-		public static Pluoxium Instance { get; } = new Pluoxium();
-
-		public override string Name => "Pluoxium";
-		public override float FusionPower => -10f;
-		public override float HeatCapacity => 80f;
-		public override float Rarity => 200f;
-		public override Color DisplayColor => Color.AliceBlue;
-	}
+            return array;
+        }
+    }
 }
