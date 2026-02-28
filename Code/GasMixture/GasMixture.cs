@@ -72,27 +72,27 @@ namespace TTV_Calculator.Code
 			}
 		}
 
-        public override string ToString()
-        {
-            List<string> data = [
-                $"- {Pressure} kPa",
-                $"- {Temperature} kelvin",
-            ];
-            if (TotalMoles > 0f)
-            {
-                for (int gasId = 0; gasId < contents.Length; gasId++)
-                {
-                    if (contents[gasId] > 0f)
-                    {
-                        data.Add($"- {GasLibrary.Gases[gasId].Name}: {contents[gasId]} mols");
-                    }
-                }
-            }
+		public override string ToString()
+		{
+			List<string> data = [
+				$"- {Pressure} kPa",
+				$"- {Temperature} kelvin",
+			];
+			if (TotalMoles > 0f)
+			{
+				for (int gasId = 0; gasId < contents.Length; gasId++)
+				{
+					if (contents[gasId] > 0f)
+					{
+						data.Add($"- {GasLibrary.Gases[gasId].Name}: {contents[gasId]} mols");
+					}
+				}
+			}
 
-            return string.Join("\n", data);
-        }
+			return string.Join("\n", data);
+		}
 
-        public GasMixture(float newTemperature = 293.15f, float newVolume = DEFAULT_VOLUME, float[]? newContents = null)
+		public GasMixture(float newTemperature = 293.15f, float newVolume = DEFAULT_VOLUME, float[]? newContents = null)
 		{
 			Temperature = newTemperature;
 			Volume = newVolume;
@@ -201,8 +201,8 @@ namespace TTV_Calculator.Code
 			_cachedTotalMoles = totalMoles;
 		}
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public float GetBombSize() => float.Max((Pressure - 4053f) / 607.95f, 0f);
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public float GetBombSize() => float.Max((Pressure - 4053f) / 607.95f, 0f);
 
 		/// <summary>
 		/// Performs all possible gas reactions.
@@ -238,7 +238,7 @@ namespace TTV_Calculator.Code
 					continue;
 				}
 
-				var reactionGroups = registry[i];
+				List<GasReaction>[] reactionGroups = registry[i];
 				if (reactionGroups == null)
 				{
 					continue;

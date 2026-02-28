@@ -40,7 +40,7 @@
 					if (Contents[gasId] > 0f)
 					{
 						data.Add($"- {GasLibrary.Gases[gasId].Name}: {Contents[gasId]} mols");
-                    }
+					}
 				}
 			}
 

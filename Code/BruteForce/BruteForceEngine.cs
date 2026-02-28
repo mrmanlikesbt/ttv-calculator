@@ -62,9 +62,9 @@ namespace TTV_Calculator.Code
 
 			_running = true;
 			StatusChanged?.Invoke("Starting.");
-            StatusChanged?.Invoke($"Combinations: {ComputeTotalCombinations(_options)}");
+			StatusChanged?.Invoke($"Combinations: {ComputeTotalCombinations(_options)}");
 
-            _workerTask = Task.Run(() => WorkerLoop(_cts.Token));
+			_workerTask = Task.Run(() => WorkerLoop(_cts.Token));
 		}
 
 		/// <summary>
@@ -111,20 +111,20 @@ namespace TTV_Calculator.Code
 			StatusChanged?.Invoke("Resumed");
 		}
 
-        private readonly struct BruteForceState(float cp, float ct, float hp, float ht, float[] coldGas, float[] hotGas)
-        {
-            public readonly float ColdPressure = cp;
-            public readonly float ColdTemperature = ct;
-            public readonly float HotPressure = hp;
-            public readonly float HotTemperature = ht;
-            public readonly float[] ColdGasPercents = coldGas;
-            public readonly float[] HotGasPercents = hotGas;
-        }
+		private readonly struct BruteForceState(float cp, float ct, float hp, float ht, float[] coldGas, float[] hotGas)
+		{
+			public readonly float ColdPressure = cp;
+			public readonly float ColdTemperature = ct;
+			public readonly float HotPressure = hp;
+			public readonly float HotTemperature = ht;
+			public readonly float[] ColdGasPercents = coldGas;
+			public readonly float[] HotGasPercents = hotGas;
+		}
 
-        /// <summary>
-        /// Executes the main brute force computation loop in parallel.
-        /// </summary>
-        private void WorkerLoop(CancellationToken token)
+		/// <summary>
+		/// Executes the main brute force computation loop in parallel.
+		/// </summary>
+		private void WorkerLoop(CancellationToken token)
 		{
 			try
 			{
@@ -187,7 +187,7 @@ namespace TTV_Calculator.Code
 			GasMixture combinedTank = new();
 			combinedTank.Merge(coldTank, hotTank);
 
-            float localMaxPressure = combinedTank.Pressure;
+			float localMaxPressure = combinedTank.Pressure;
 			for (int i = 0; i < 4; i++)
 			{
 				ReactionType reaction = combinedTank.React();
@@ -203,18 +203,18 @@ namespace TTV_Calculator.Code
 				{
 					break;
 				}
-            }
+			}
 
-            // Update global high score (thread-safe)
-            lock (_maxPressureLock)
-            {
+			// Update global high score (thread-safe)
+			lock (_maxPressureLock)
+			{
 				if (localMaxPressure > _globalMaxPressure)
 				{
 					_globalMaxPressure = localMaxPressure;
 					HighscoreUpdated?.Invoke(float.Round(combinedTank.GetBombSize()), coldTank, hotTank);
-                }
-            }
-        }
+				}
+			}
+		}
 
 		/// <summary>
 		/// Lazily generates all valid combinations of pressures, temperatures, and gas mixtures
