@@ -89,7 +89,7 @@ namespace TTV_Calculator.Code
 				}
 			}
 
-			return string.Join("\n", data);
+			return string.Join(Environment.NewLine, data);
 		}
 
 		public GasMixture(float newTemperature = 293.15f, float newVolume = DEFAULT_VOLUME, float[]? newContents = null)

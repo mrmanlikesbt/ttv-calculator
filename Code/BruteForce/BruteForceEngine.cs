@@ -1,4 +1,5 @@
 ﻿using System.Numerics;
+using System.Timers;
 
 namespace TTV_Calculator.Code
 {
@@ -26,7 +27,6 @@ namespace TTV_Calculator.Code
 
 		private CancellationTokenSource? _cts;
 		private readonly ManualResetEventSlim _pauseEvent = new(true);
-		private Task? _workerTask;
 
 		private volatile bool _running;
 
@@ -35,14 +35,18 @@ namespace TTV_Calculator.Code
 		private float _globalMaxPressure;
 		private readonly object _maxPressureLock = new();
 
+		private readonly System.Timers.Timer _statusUpdateTimer = new(10_000);
+
 		/// <summary>
 		/// Releases all unmanaged resources used by the <see cref="BruteForceEngine"/> and cancels any active computation.
 		/// </summary>
 		public void Dispose()
 		{
-			_cts?.Cancel();
 			_pauseEvent?.Dispose();
+			_cts?.Cancel();
 			_cts?.Dispose();
+			_statusUpdateTimer.Stop();
+			_statusUpdateTimer.Dispose();
 		}
 
 		/// <summary>
@@ -61,11 +65,12 @@ namespace TTV_Calculator.Code
 			_pauseEvent.Set();
 
 			_running = true;
-			StatusChanged?.Invoke("Starting.");
-			StatusChanged?.Invoke($"Combinations: {ComputeTotalCombinations(_options)}");
+            BigInteger totalCombinations = ComputeTotalCombinations(_options);
+            StatusChanged?.Invoke($"Beginning brute force with {Environment.ProcessorCount} threads. Searching {totalCombinations:N0} combinations.");
+			_statusUpdateTimer.Start();
 
-			_workerTask = Task.Run(() => WorkerLoop(_cts.Token));
-		}
+            Task.Run(() => WorkerLoop(_cts.Token, (double)totalCombinations));
+        }
 
 		/// <summary>
 		/// Requests cancellation of the current brute force computation and signals all worker threads to exit.
@@ -79,7 +84,6 @@ namespace TTV_Calculator.Code
 
 			_cts?.Cancel();
 			_pauseEvent.Set();
-
 			StatusChanged?.Invoke("Cancelled.");
 		}
 
@@ -94,6 +98,7 @@ namespace TTV_Calculator.Code
 			}
 
 			_pauseEvent.Reset();
+			_statusUpdateTimer.Stop();
 			StatusChanged?.Invoke("Paused");
 		}
 
@@ -108,6 +113,7 @@ namespace TTV_Calculator.Code
 			}
 
 			_pauseEvent.Set();
+			_statusUpdateTimer.Start();
 			StatusChanged?.Invoke("Resumed");
 		}
 
@@ -124,9 +130,21 @@ namespace TTV_Calculator.Code
 		/// <summary>
 		/// Executes the main brute force computation loop in parallel.
 		/// </summary>
-		private void WorkerLoop(CancellationToken token)
+		private void WorkerLoop(CancellationToken token, double totalCombinations)
 		{
-			try
+			long totalCompletedSimulations = 0;
+			long completedSimulationsLastTenSeconds = 0;
+
+            ElapsedEventHandler statusUpdateHandler = (_, __) =>
+            {
+                double cps = completedSimulationsLastTenSeconds / 10;
+                completedSimulationsLastTenSeconds = 0;
+
+                StatusChanged?.Invoke($"{cps:N0}/s {double.Round(totalCompletedSimulations / totalCombinations * 100.0)}%");
+            };
+            _statusUpdateTimer.Elapsed += statusUpdateHandler;
+
+            try
 			{
 				Parallel.ForEach(GenerateParameterSpace(_options), new ParallelOptions
 				{
@@ -139,14 +157,13 @@ namespace TTV_Calculator.Code
 					_pauseEvent.Wait(token);
 
 					RunSimulation(state);
+					Interlocked.Increment(ref totalCompletedSimulations);
+					Interlocked.Increment(ref completedSimulationsLastTenSeconds);
 				});
 
 				StatusChanged?.Invoke("Completed");
 			}
-			catch (OperationCanceledException)
-			{
-				//StatusChanged?.Invoke("Cancelled");
-			}
+			catch (OperationCanceledException) { }
 			catch (Exception ex)
 			{
 				StatusChanged?.Invoke($"Error: {ex.Message}");
@@ -154,6 +171,8 @@ namespace TTV_Calculator.Code
 			finally
 			{
 				_running = false;
+                _statusUpdateTimer.Elapsed -= statusUpdateHandler;
+                _statusUpdateTimer.Stop();
 				Completed?.Invoke();
 			}
 		}

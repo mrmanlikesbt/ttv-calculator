@@ -16,21 +16,21 @@ namespace TTV_Calculator.Code.UserControls
 			{
 				BeginInvoke(() =>
 				{
-					status_log.Text += $"[{DateTime.Now.ToString("HH:mm:ss")}]: {newStatus}\n";
+					status_log.AppendText($"[{DateTime.Now:HH:mm:ss}]: {newStatus}{Environment.NewLine}");
 				});
 			};
 			_engine.HighscoreUpdated += (bombSize, coldTank, hotTank) =>
 			{
 				BeginInvoke(() =>
 				{
-					highscore.Text = $"Bomb Range: {bombSize}\n\n" +
-						"Cold Tank:\n" +
+					highscore.Text = $"Bomb Range: {bombSize}{Environment.NewLine}{Environment.NewLine}" +
+						$"Cold Tank:{Environment.NewLine}" +
 						coldTank +
-						"\n\nHot Tank:\n" +
+                        $"{Environment.NewLine}{Environment.NewLine}Hot Tank:{Environment.NewLine}" +
 						hotTank;
-                });
+				});
 			};
-            _engine.Completed += () =>
+			_engine.Completed += () =>
 			{
 				BeginInvoke(() =>
 				{
@@ -45,7 +45,7 @@ namespace TTV_Calculator.Code.UserControls
 			SetupUI();
 		}
 
-        private void SetupUI()
+		private void SetupUI()
 		{
 			// Cold tank dropdown
 			cold_tank_gas_dropdown.DataSource = availableColdTankGases;
@@ -92,12 +92,12 @@ namespace TTV_Calculator.Code.UserControls
 		}
 
 		private readonly struct GasRowTag(GasType gasType, Button removeButton)
-        {
+		{
 			public readonly GasType GasType = gasType;
 			public readonly Button RemoveButton = removeButton;
-        }
+		}
 
-        private static void AddGasRow(
+		private static void AddGasRow(
 			GasType gasType,
 			FlowLayoutPanel targetPanel,
 			BindingList<GasType> availableGases)
@@ -106,12 +106,12 @@ namespace TTV_Calculator.Code.UserControls
 
 			Panel gasRow = new()
 			{
-                Width = targetPanel.ClientSize.Width - 7,
-                Left = 3,
-                Height = 40,
-                BorderStyle = BorderStyle.FixedSingle,
-                BackColor = GasLibrary.Gases[(int)gasType].DisplayColor,
-            };
+				Width = targetPanel.ClientSize.Width - 7,
+				Left = 3,
+				Height = 40,
+				BorderStyle = BorderStyle.FixedSingle,
+				BackColor = GasLibrary.Gases[(int)gasType].DisplayColor,
+			};
 
 			// Gas row controls
 			Label nameLabel = new()
@@ -182,59 +182,59 @@ namespace TTV_Calculator.Code.UserControls
 			return contents.ToArray();
 		}
 
-        private void begin_button_Click(object sender, EventArgs e)
-        {
-            begin_button.Enabled = false;
-            pause_button.Enabled = true;
-            unpause_button.Enabled = false;
-            end_button.Enabled = true;
+		private void begin_button_Click(object sender, EventArgs e)
+		{
+			begin_button.Enabled = false;
+			pause_button.Enabled = true;
+			unpause_button.Enabled = false;
+			end_button.Enabled = true;
 			status_log.Text = "";
 
-            BruteForceOptions options = new()
-            {
-                ColdPressureMin = (float)cold_tank_kpa_lower.Value,
-                ColdPressureMax = (float)cold_tank_kpa_upper.Value,
-                ColdPressureStep = (float)cold_tank_pressure_step_size.Value,
-                ColdTemperatureMin = (float)cold_tank_temperature_lower.Value,
-                ColdTemperatureMax = (float)cold_tank_temperature_upper.Value,
-                ColdTemperatureStep = (float)cold_tank_temperature_step_size.Value,
-                ColdGasPercentStep = (float)cold_tank_gas_percent_step_size.Value * 0.01f,
-                ColdGasTypes = CollectTankContents(cold_tank_panel),
+			BruteForceOptions options = new()
+			{
+				ColdPressureMin = (float)cold_tank_kpa_lower.Value,
+				ColdPressureMax = (float)cold_tank_kpa_upper.Value,
+				ColdPressureStep = (float)cold_tank_pressure_step_size.Value,
+				ColdTemperatureMin = (float)cold_tank_temperature_lower.Value,
+				ColdTemperatureMax = (float)cold_tank_temperature_upper.Value,
+				ColdTemperatureStep = (float)cold_tank_temperature_step_size.Value,
+				ColdGasPercentStep = (float)cold_tank_gas_percent_step_size.Value * 0.01f,
+				ColdGasTypes = CollectTankContents(cold_tank_panel),
 
-                HotPressureMin = (float)hot_tank_kpa_lower.Value,
-                HotPressureMax = (float)hot_tank_kpa_upper.Value,
-                HotPressureStep = (float)hot_tank_pressure_step_size.Value,
-                HotTemperatureMin = (float)hot_tank_temperature_lower.Value,
-                HotTemperatureMax = (float)hot_tank_temperature_upper.Value,
-                HotTemperatureStep = (float)hot_tank_temperature_step_size.Value,
-                HotGasPercentStep = (float)hot_tank_gas_percent_step_size.Value * 0.01f,
-                HotGasTypes = CollectTankContents(hot_tank_panel),
-            };
+				HotPressureMin = (float)hot_tank_kpa_lower.Value,
+				HotPressureMax = (float)hot_tank_kpa_upper.Value,
+				HotPressureStep = (float)hot_tank_pressure_step_size.Value,
+				HotTemperatureMin = (float)hot_tank_temperature_lower.Value,
+				HotTemperatureMax = (float)hot_tank_temperature_upper.Value,
+				HotTemperatureStep = (float)hot_tank_temperature_step_size.Value,
+				HotGasPercentStep = (float)hot_tank_gas_percent_step_size.Value * 0.01f,
+				HotGasTypes = CollectTankContents(hot_tank_panel),
+			};
 
-            _engine.Start(options);
-        }
+			_engine.Start(options);
+		}
 
-        private void end_button_Click(object sender, EventArgs e)
-        {
-            begin_button.Enabled = true;
-            pause_button.Enabled = false;
-            unpause_button.Enabled = false;
-            end_button.Enabled = false;
-            _engine?.Stop();
-        }
+		private void end_button_Click(object sender, EventArgs e)
+		{
+			begin_button.Enabled = true;
+			pause_button.Enabled = false;
+			unpause_button.Enabled = false;
+			end_button.Enabled = false;
+			_engine?.Stop();
+		}
 
-        private void pause_button_Click(object sender, EventArgs e)
-        {
-            pause_button.Enabled = false;
-            unpause_button.Enabled = true;
-            _engine?.Pause();
-        }
+		private void pause_button_Click(object sender, EventArgs e)
+		{
+			pause_button.Enabled = false;
+			unpause_button.Enabled = true;
+			_engine?.Pause();
+		}
 
-        private void unpause_button_Click(object sender, EventArgs e)
-        {
-            pause_button.Enabled = true;
-            unpause_button.Enabled = false;
-            _engine?.Resume();
-        }
-    }
+		private void unpause_button_Click(object sender, EventArgs e)
+		{
+			pause_button.Enabled = true;
+			unpause_button.Enabled = false;
+			_engine?.Resume();
+		}
+	}
 }

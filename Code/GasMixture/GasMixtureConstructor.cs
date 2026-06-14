@@ -44,7 +44,7 @@
 				}
 			}
 
-			return string.Join("\n", data);
+			return string.Join(Environment.NewLine, data);
 		}
 	}
 }
